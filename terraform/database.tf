@@ -29,7 +29,7 @@ resource "aws_db_instance" "strapi" {
   identifier              = "docker-strapi-postgres"
   engine                  = "postgres"
   engine_version          = "15"
-  instance_class          = "db.t3.micro"
+  instance_class          = "db.t3.small"
   allocated_storage       = 20
 
   db_name                 = "strapi"
