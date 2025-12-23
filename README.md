@@ -1,0 +1,1 @@
+# Configure-AWS-resources-for-Blue-Green-deployment-of-the-Strapi-app
