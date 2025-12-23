@@ -51,6 +51,13 @@ resource "aws_security_group" "strapi_sg" {
     protocol       = "tcp"
     security_groups    = [aws_security_group.alb.id]
   }
+
+  ingress {
+    from_port      = 5432
+    to_port        = 5432
+    protocol       = "tcp"
+    security_groups    = [aws_security_group.alb.id]
+  }
   
 
   egress {
@@ -149,9 +156,7 @@ resource "aws_ecs_service" "service" {
     type = "CODE_DEPLOY" 
   }
 
-  depends_on = [
-      aws_lb_listener.http
-  ]
+  depends_on = [aws_lb_listener.http]
 
 
 }
