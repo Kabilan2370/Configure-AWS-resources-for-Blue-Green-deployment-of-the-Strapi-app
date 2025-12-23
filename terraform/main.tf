@@ -42,7 +42,7 @@ resource "aws_iam_role_policy_attachment" "ecs_exec_policy" {
 
 # Security Group
 resource "aws_security_group" "strapi_sg" {
-  name   = "strapi-docker-sg1"
+  name   = "docker-strapi-one-sg1"
   vpc_id = local.default_vpc_id
 
   ingress {
