@@ -89,9 +89,7 @@ resource "aws_ecs_task_definition" "strapi" {
 
 
     portMappings = [
-      { containerPort = 1337
-        protocol      = "tcp"
-         }
+      { containerPort = 1337 }
     ]
 
 
@@ -150,6 +148,10 @@ resource "aws_ecs_service" "service" {
   deployment_controller {
     type = "CODE_DEPLOY" 
   }
+
+  depends_on = [
+      aws_lb_listener.http
+  ]
 
 
 }
