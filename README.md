@@ -2,10 +2,6 @@
 
 # **Blue/Green Deployment for Strapi on AWS**
 
-### What we are developing ?
-A placeholder is something temporary that exists only so the infrastructure can be created successfully — it is not the final or real value.
-Here I used the placeholder nginx:latest image 
-
 ### What is placeholder ?
 Placeholder = temporary container used only Later, Before your real CI/CD pipeline pushes your custom Strapi image, codeDeploy replaces it with your real app image. There is no difference between the strapi image vs placeholder strapi image.
 
@@ -104,4 +100,23 @@ Deployment type: Blue/Green
 
 Traffic control: ALB
 
-Deployment strategy: CodeDeployDefault.ECSCanary10Percent5Minutes
+### Deployment strategy: CodeDeployDefault.ECSCanary10Percent5Minutes
+When I deploy a new ECS version, send only 10% of traffic to it first, wait 5 minutes, then (if healthy) send 100% traffic.
+
+### AWSCodeDeployRoleForECS
+This policy allows CodeDeploy to:
+
+1. Create new ECS task sets
+2. Shift ALB traffic
+3. Stop old tasks
+4. Roll back on failure
+
+### What this means:
+
+1. BLUE_GREEN → old & new versions exist at same time
+
+2. WITH_TRAFFIC_CONTROL → ALB traffic is shifted gradually
+
+### deployment_ready_option
+If new task doesn’t become “ready” in time, Still continue deployment
+
