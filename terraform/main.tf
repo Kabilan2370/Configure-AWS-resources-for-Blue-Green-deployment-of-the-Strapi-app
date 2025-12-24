@@ -49,7 +49,14 @@ resource "aws_security_group" "strapi_sg" {
     from_port      = 1337
     to_port        = 1337
     protocol       = "tcp"
-    security_groups    = [aws_security_group.alb.id]
+    cidr_blocks    = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port      = 5432
+    to_port        = 5432
+    protocol       = "tcp"
+    cidr_blocks    = ["0.0.0.0/0"]
   }
   
 
@@ -111,6 +118,7 @@ resource "aws_ecs_task_definition" "strapi" {
       { name = "DATABASE_NAME", value = "strapi" },
       { name = "DATABASE_USERNAME", value = "strapi" },
       { name = "DATABASE_PASSWORD", value = "StrapiPassword123!" },
+
       { name = "DATABASE_SSL", value = "true" },
       { name = "DATABASE_SSL_REJECT_UNAUTHORIZED", value = "false" },
 
