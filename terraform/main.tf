@@ -1,21 +1,61 @@
-
-# Get default VPC
-data "aws_vpcs" "default" {
-  filter {
-    name   = "isDefault"
-    values = ["true"]
-  }
+# Default VPC and subnets
+data "aws_vpc" "default" {
+  default = true
 }
 
-locals {
-  default_vpc_id = data.aws_vpcs.default.ids[0]
-}
-
-# Get default subnets
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
-    values = [local.default_vpc_id]
+    values = [data.aws_vpc.default.id]
+  }
+}
+
+# Security Group for ECS (allow traffic on 1337)
+resource "aws_security_group" "ecs_sg" {
+  name        = "strapi-ecs-sg"
+  description = "Allow traffic for ECS containers"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    from_port   = 1337
+    to_port     = 1337
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Security Group for ALB
+resource "aws_security_group" "alb_sg" {
+  name        = "strapi-alb-sg"
+  description = "Allow HTTP traffic to ALB"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 1337
+    to_port     = 1337
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -40,43 +80,14 @@ resource "aws_iam_role_policy_attachment" "ecs_exec_policy" {
 
 
 
-# Security Group
-resource "aws_security_group" "strapi_sg" {
-  name   = "docker-strapi-sg1-one"
-  vpc_id = local.default_vpc_id
-
-  ingress {
-    from_port      = 1337
-    to_port        = 1337
-    protocol       = "tcp"
-    cidr_blocks    = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port      = 5432
-    to_port        = 5432
-    protocol       = "tcp"
-    cidr_blocks    = ["0.0.0.0/0"]
-  }
-  
-
-  egress {
-    from_port   = 0
-    to_port        = 0
-    protocol      = "-1"
-    cidr_blocks  = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_cloudwatch_log_group" "strapi" {
-  name                     = "/ecs/docker-strapi-con"
+# CloudWatch Log Group
+resource "aws_cloudwatch_log_group" "strapi_log_group" {
+  name              = "/ecs/strapi/checkup"
   retention_in_days = 7
 }
 
-# aws cluster
-resource "aws_ecs_cluster" "cluster" {
-  name = "docker-strapi-cluster"
- 
+resource "aws_ecs_cluster" "strapi_cluster" {
+  name = "strapi-cluster"
 }
 
 
