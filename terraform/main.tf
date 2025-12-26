@@ -80,82 +80,71 @@ resource "aws_ecs_cluster" "cluster" {
 }
 
 
-resource "aws_ecs_task_definition" "strapi" {
-  family                   			= "docker-strapi-task"
-  requires_compatibilities 	  	= ["FARGATE"]
-  network_mode             	  	= "awsvpc"
-  cpu                      			= 512
-  memory                   			= 1024
-  execution_role_arn       	  	= aws_iam_role.ecs_task_execution.arn
+resource "aws_ecs_task_definition" "strapi_task" {
+  family                   = "strapi-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
-  {
-    name      = "placeholder"
-    image     = var.image_uri
-    essential = true
-
-
-    portMappings = [
-      { containerPort = 1337 }
-    ]
-
-
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         	= "/ecs/docker-strapi-con"
-        "awslogs-region"        	= "eu-north-1"
-        "awslogs-stream-prefix" 	= "ecs"
+    {
+      name      = "strapi"
+      image     = var.ecr_image
+      essential = true
+      portMappings = [{
+        containerPort = 1337
+        hostPort      = 1337
+        protocol      = "tcp"
+      }]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.strapi_log_group.name
+          "awslogs-region"        = "us-east-1"
+          "awslogs-stream-prefix" = "ecs/strapi"
+        }
       }
     }
-
-    
-
-    environment = [
-      { name = "DATABASE_CLIENT", value = "postgres" },
-      { name = "DATABASE_HOST", value = aws_db_instance.strapi.address },
-      { name = "DATABASE_PORT", value = "5432" },
-      { name = "DATABASE_NAME", value = "strapi" },
-      { name = "DATABASE_USERNAME", value = "strapi" },
-      { name = "DATABASE_PASSWORD", value = "StrapiPassword123!" },
-
-      { name = "DATABASE_SSL", value = "true" },
-      { name = "DATABASE_SSL_REJECT_UNAUTHORIZED", value = "false" },
-
-      { name = "APP_KEYS", value = "r9pQ7fC0y6nYvP1H0M8z2KZ+FZt9JqYpR8aM1s3EwQ4=,m3L2V7N+Kx0T9fQWJ5p8E4rZPZCq+S6A1yH0MdnYv8=,FZ+P9Jq3sM0yQ7r8aK6L1Tz4VnH2E5CwWmRZx=,xZ9E1r2V7p8C6Wq0mM5QJH3N4Y+LZsAFTk=" },
-      { name = "API_TOKEN_SALT", value = "S8Z3xH0QJ7r2p9C6yF5M+K4TnE1A=" },
-      { name = "ADMIN_JWT_SECRET", value = "Z1x8K9yH3pQF7J0+E2C4rV6mN5A=" },
-      { name = "JWT_SECRET", value = "H5N6M8JZ9QF0y+K7pE3x1rC4V2A=" }
-    ]
-
-    }
   ])
+
+  depends_on = [aws_cloudwatch_log_group.strapi_log_group]
 }
 
-resource "aws_ecs_service" "service" {
-  name            	= "docker-strapi-ecs-service"
-  cluster         	= aws_ecs_cluster.cluster.id
-  task_definition 	= aws_ecs_task_definition.strapi.arn
-  desired_count   	= 1
-  launch_type     	= "FARGATE"
+# ECS Service (using FARGATE SPOT!)
+resource "aws_ecs_service" "strapi_service" {
+  name            = "strapi-service"
+  cluster         = aws_ecs_cluster.strapi_cluster.id
+  task_definition = aws_ecs_task_definition.strapi_task.arn
+  desired_count   = 1
 
-  network_configuration {
-    subnets                  = data.aws_subnets.default.ids
-    security_groups          = [aws_security_group.strapi_sg.id]
-    assign_public_ip          = true
+  deployment_controller {
+    type = "CODE_DEPLOY"
   }
 
+  # Add this load balancer configuration
   load_balancer {
-    target_group_arn = aws_lb_target_group.blue_strapi.arn
-    container_name   = "placeholder"
+    target_group_arn = aws_lb_target_group.blue_tg.arn # Initial target group
+    container_name   = "strapi"
     container_port   = 1337
   }
 
-  deployment_controller {
-    type = "CODE_DEPLOY" 
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
   }
 
-  depends_on = [aws_lb_listener.http]
+  network_configuration {
+    subnets          = data.aws_subnets.default.ids
+    security_groups  = [aws_security_group.ecs_sg.id]
+    assign_public_ip = true
+  }
 
-
+  lifecycle {
+    ignore_changes = [
+      task_definition, # CodeDeploy will manage this
+      load_balancer    # CodeDeploy will handle traffic shifting
+    ]
+  }
 }
