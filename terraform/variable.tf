@@ -1,10 +1,17 @@
 variable "aws_region" {
-  default = "eu-north-1"
+  default = "ap-south-1"
 }
 
-variable "image_uri" {
-  description = "ECR image URI with tag"
+variable "ecr_image" {
+  description = "The full ECR image URI including tag to deploy"
   type        = string
-  default     = ""
+
 }
 
+variable "app_port" {
+  default = 1337
+}
+
+variable "domain_name" {
+  default = "nsmstore.site"
+}
