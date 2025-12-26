@@ -6,10 +6,10 @@ on:
       - main
 
 env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY_NAME: strapi-app
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY_NAME: docker-strapi-ecr
   IMAGE_TAG: latest
-  ECR_IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/strapi-app
+  ECR_IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/docker-strapi-ecr
 
 jobs:
   build_and_push:
